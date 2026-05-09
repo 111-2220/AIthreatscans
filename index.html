@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ThreatScan AI — Intelligent Content Security Analyzer</title>
+  <meta name="description" content="AI-powered threat detection for emails, SMS, links and messages. Instantly classify content as Safe, Suspicious, or Dangerous." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #060912;
+      --bg2: #0c1120;
+      --bg3: #111827;
+      --card: #0f172a;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.13);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --faint: #475569;
+
+      --cyan: #06b6d4;
+      --cyan-dim: rgba(6,182,212,0.12);
+      --cyan-glow: rgba(6,182,212,0.25);
+      --violet: #8b5cf6;
+      --violet-dim: rgba(139,92,246,0.12);
+      --green: #10b981;
+      --green-dim: rgba(16,185,129,0.12);
+      --green-glow: rgba(16,185,129,0.3);
+      --amber: #f59e0b;
+      --amber-dim: rgba(245,158,11,0.12);
+      --amber-glow: rgba(245,158,11,0.3);
+      --red: #ef4444;
+      --red-dim: rgba(239,68,68,0.12);
+      --red-glow: rgba(239,68,68,0.3);
+
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-display);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── ANIMATED GRID BG ─── */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(6,182,212,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(6,182,212,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      animation: gridPan 20s linear infinite;
+    }
+    @keyframes gridPan { from{background-position:0 0} to{background-position:40px 40px} }
+
+    .bg-orbs {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+    }
+    .orb {
+      position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.18;
+      animation: orbFloat 8s ease-in-out infinite;
+    }
+    .orb1 { width: 500px; height: 500px; background: var(--violet); top: -150px; left: -100px; animation-delay: 0s; }
+    .orb2 { width: 400px; height: 400px; background: var(--cyan); bottom: -100px; right: -80px; animation-delay: 3s; }
+    .orb3 { width: 300px; height: 300px; background: var(--green); top: 40%; left: 50%; animation-delay: 5s; }
+    @keyframes orbFloat {
+      0%,100% { transform: translate(0,0) scale(1); }
+      50% { transform: translate(20px, -30px) scale(1.05); }
+    }
+
+    /* ─── LAYOUT ─── */
+    .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* ─── NAVBAR ─── */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 0 32px;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 18px; font-weight: 800; color: var(--text);
+      text-decoration: none;
+    }
+    .nav-logo-icon {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .nav-badge {
+      font-size: 11px; font-family: var(--font-mono);
+      background: var(--cyan-dim); color: var(--cyan);
+      border: 1px solid rgba(6,182,212,0.25);
+      padding: 3px 9px; border-radius: 20px;
+    }
+    .nav-links { display: flex; gap: 8px; }
+    .nav-link {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 13px; font-weight: 600; color: var(--muted);
+      text-decoration: none; padding: 7px 14px; border-radius: var(--radius-sm);
+      border: 1px solid transparent; transition: all 0.2s;
+    }
+    .nav-link:hover { color: var(--text); border-color: var(--border2); background: rgba(255,255,255,0.04); }
+    .nav-link.github { background: rgba(255,255,255,0.05); border-color: var(--border2); color: var(--text); }
+    .nav-link.github:hover { background: rgba(255,255,255,0.1); }
+
+    /* ─── HERO ─── */
+    .hero { text-align: center; padding: 20px 0 52px; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 12px; font-family: var(--font-mono); font-weight: 500;
+      color: var(--cyan); background: var(--cyan-dim);
+      border: 1px solid rgba(6,182,212,0.2); border-radius: 20px;
+      padding: 5px 14px; margin-bottom: 22px;
+    }
+    .hero-eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); animation: blink 1.5s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 64px); font-weight: 800; line-height: 1.1;
+      letter-spacing: -1.5px; margin-bottom: 20px;
+    }
+    .hero h1 span {
+      background: linear-gradient(90deg, var(--cyan), var(--violet), var(--cyan));
+      background-size: 200%;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 4s linear infinite;
+    }
+    @keyframes shimmer { from{background-position:0%} to{background-position:200%} }
+
+    .hero-sub {
+      font-size: 18px; color: var(--muted); max-width: 540px; margin: 0 auto 36px;
+      line-height: 1.65; font-weight: 400;
+    }
+
+    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--font-display); font-weight: 700; font-size: 14px;
+      padding: 11px 24px; border-radius: var(--radius-sm);
+      border: none; cursor: pointer; text-decoration: none; transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      color: #fff;
+      box-shadow: 0 0 30px rgba(6,182,212,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 45px rgba(6,182,212,0.45); }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border2);
+    }
+    .btn-outline:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.25); }
+    .btn-ghost {
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+
+    /* ─── STATS ROW ─── */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      margin-bottom: 36px;
+    }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px;
+      text-align: center; transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: var(--border2); }
+    .stat-num { font-size: 28px; font-weight: 800; font-family: var(--font-mono); }
+    .stat-num.cyan { color: var(--cyan); }
+    .stat-num.violet { color: var(--violet); }
+    .stat-num.green { color: var(--green); }
+    .stat-label { font-size: 12px; color: var(--faint); margin-top: 3px; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ─── MAIN SCANNER CARD ─── */
+    .scanner-card {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(6,182,212,0.05), 0 32px 80px rgba(0,0,0,0.5);
+      margin-bottom: 32px;
+    }
+
+    .scanner-header {
+      padding: 20px 24px 0;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .scanner-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--cyan-dim), var(--violet-dim));
+      border: 1px solid rgba(6,182,212,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .scanner-title { font-size: 17px; font-weight: 700; }
+    .scanner-desc { font-size: 13px; color: var(--muted); margin-top: 1px; }
+
+    /* TYPE TABS */
+    .type-tabs {
+      display: flex; gap: 8px; padding: 16px 24px 0;
+    }
+    .tab {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 600; font-family: var(--font-display);
+      padding: 7px 14px; border-radius: 20px;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--faint); cursor: pointer; transition: all 0.2s;
+    }
+    .tab:hover { border-color: var(--border2); color: var(--muted); }
+    .tab.active {
+      background: var(--cyan-dim); border-color: rgba(6,182,212,0.35);
+      color: var(--cyan);
+    }
+    .tab svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* TEXTAREA */
+    .textarea-wrap { padding: 16px 24px; }
+    .textarea-inner {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      overflow: hidden; transition: border-color 0.2s;
+    }
+    .textarea-inner:focus-within { border-color: rgba(6,182,212,0.4); box-shadow: 0 0 0 3px rgba(6,182,212,0.07); }
+    textarea {
+      width: 100%; min-height: 160px; padding: 16px;
+      font-family: var(--font-mono); font-size: 13.5px;
+      color: var(--text); background: transparent;
+      border: none; resize: vertical; outline: none;
+      line-height: 1.7;
+    }
+    textarea::placeholder { color: var(--faint); }
+    .textarea-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px;
+      border-top: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+    .char-info { font-size: 11.5px; font-family: var(--font-mono); color: var(--faint); }
+
+    /* ACTION BUTTONS ROW */
+    .action-row {
+      display: flex; gap: 8px; padding: 0 24px 20px; flex-wrap: wrap;
+    }
+    .scan-btn {
+      flex: 1; min-width: 140px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 13px 24px; font-family: var(--font-display); font-size: 15px; font-weight: 700;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      color: #fff; border: none; border-radius: var(--radius-sm); cursor: pointer;
+      transition: all 0.2s; box-shadow: 0 0 24px rgba(6,182,212,0.25);
+    }
+    .scan-btn:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(6,182,212,0.4); }
+    .scan-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-sm {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 16px; font-family: var(--font-display); font-size: 13px; font-weight: 600;
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border2); border-radius: var(--radius-sm);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-sm:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .btn-sm svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* SAMPLE PILLS */
+    .samples-row {
+      padding: 0 24px 20px;
+      display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    }
+    .samples-label { font-size: 12px; color: var(--faint); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin-right: 4px; }
+    .sample-pill {
+      font-size: 12px; font-family: var(--font-mono);
+      padding: 4px 10px; border-radius: 20px;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      color: var(--muted); cursor: pointer; transition: all 0.2s;
+    }
+    .sample-pill:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+    .sample-pill.danger-sample:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+
+    /* ─── RESULT ─── */
+    .result-wrap { padding: 0 24px 24px; }
+
+    .result-card {
+      border-radius: var(--radius); padding: 22px;
+      border: 1px solid transparent; animation: fadeUp 0.3s ease;
+    }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+    .result-card.safe { background: var(--green-dim); border-color: rgba(16,185,129,0.25); }
+    .result-card.suspicious { background: var(--amber-dim); border-color: rgba(245,158,11,0.25); }
+    .result-card.dangerous { background: var(--red-dim); border-color: rgba(239,68,68,0.25); }
+    .result-card.loading { background: rgba(255,255,255,0.03); border-color: var(--border); }
+
+    .verdict-row {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    }
+    .verdict-icon {
+      width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .safe .verdict-icon { background: rgba(16,185,129,0.15); }
+    .suspicious .verdict-icon { background: rgba(245,158,11,0.15); }
+    .dangerous .verdict-icon { background: rgba(239,68,68,0.15); }
+    .loading .verdict-icon { background: rgba(255,255,255,0.05); }
+
+    .verdict-text {}
+    .verdict-label { font-size: 22px; font-weight: 800; line-height: 1; margin-bottom: 3px; }
+    .safe .verdict-label { color: var(--green); }
+    .suspicious .verdict-label { color: var(--amber); }
+    .dangerous .verdict-label { color: var(--red); }
+    .loading .verdict-label { color: var(--muted); }
+    .verdict-sub { font-size: 13px; color: var(--muted); }
+
+    .confidence-pill {
+      margin-left: auto; font-size: 12px; font-family: var(--font-mono);
+      padding: 5px 12px; border-radius: 20px; font-weight: 500;
+    }
+    .safe .confidence-pill { background: rgba(16,185,129,0.12); color: var(--green); }
+    .suspicious .confidence-pill { background: rgba(245,158,11,0.12); color: var(--amber); }
+    .dangerous .confidence-pill { background: rgba(239,68,68,0.12); color: var(--red); }
+
+    .result-summary { font-size: 15px; line-height: 1.7; color: var(--text); margin-bottom: 10px; font-weight: 600; }
+    .result-details { font-size: 14px; line-height: 1.7; color: var(--muted); margin-bottom: 14px; }
+
+    .signals { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .signal-pill {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px; font-family: var(--font-mono);
+      padding: 4px 10px; border-radius: 20px;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--border2);
+      color: var(--muted);
+    }
+    .result-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .res-btn {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; font-family: var(--font-display);
+      padding: 7px 14px; border-radius: var(--radius-sm);
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border2);
+      color: var(--muted); cursor: pointer; transition: all 0.2s;
+    }
+    .res-btn:hover { color: var(--text); background: rgba(255,255,255,0.09); }
+    .res-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .loader-dots { display: flex; gap: 5px; align-items: center; }
+    .loader-dots span {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--muted); animation: dotPulse 1.2s infinite;
+    }
+    .loader-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loader-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotPulse { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+
+    /* ─── HOW IT WORKS ─── */
+    .section-title {
+      font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px;
+    }
+    .section-sub { font-size: 15px; color: var(--muted); margin-bottom: 24px; }
+
+    .how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 48px; }
+    .how-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .how-card:hover { border-color: var(--border2); transform: translateY(-3px); }
+    .how-num {
+      font-size: 11px; font-family: var(--font-mono); font-weight: 500;
+      color: var(--cyan); background: var(--cyan-dim);
+      border: 1px solid rgba(6,182,212,0.2); border-radius: 20px;
+      padding: 2px 9px; display: inline-block; margin-bottom: 12px;
+    }
+    .how-icon { font-size: 28px; margin-bottom: 10px; display: block; }
+    .how-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .how-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* ─── VERDICT LEGEND ─── */
+    .verdict-legend { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 48px; }
+    .legend-card {
+      border-radius: var(--radius); padding: 18px 20px;
+      border: 1px solid transparent;
+    }
+    .legend-card.safe { background: var(--green-dim); border-color: rgba(16,185,129,0.2); }
+    .legend-card.suspicious { background: var(--amber-dim); border-color: rgba(245,158,11,0.2); }
+    .legend-card.dangerous { background: var(--red-dim); border-color: rgba(239,68,68,0.2); }
+    .legend-icon { font-size: 24px; margin-bottom: 8px; display: block; }
+    .legend-title { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+    .safe .legend-title { color: var(--green); }
+    .suspicious .legend-title { color: var(--amber); }
+    .dangerous .legend-title { color: var(--red); }
+    .legend-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+
+
+    /* ─── FOOTER ─── */
+    footer {
+      border-top: 1px solid var(--border); padding: 28px 0;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 13px; color: var(--faint); flex-wrap: wrap; gap: 12px;
+    }
+    footer a { color: var(--cyan); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ─── TOAST ─── */
+    #toast {
+      position: fixed; bottom: 28px; right: 28px; z-index: 999;
+      background: var(--bg3); border: 1px solid var(--border2);
+      border-radius: var(--radius-sm); padding: 11px 18px;
+      font-size: 13px; font-weight: 600; color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+      opacity: 0; transform: translateY(10px);
+      transition: all 0.3s; pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
+      .how-grid, .verdict-legend { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .hero h1 { font-size: 32px; }
+      .hero-sub { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<div class="wrapper">
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="#">
+      <div class="nav-logo-icon">🛡️</div>
+      ThreatScan AI
+    </a>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="nav-badge">v1.0 · Portfolio</span>
+      <div class="nav-links">
+        <a class="nav-link" href="#how-it-works">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          How it works
+        </a>
+        <a class="nav-link github" href="https://github.com" target="_blank">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.31 3.435 9.82 8.205 11.405.6.11.82-.26.82-.577v-2.165c-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.467-1.332-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.3 1.23A11.52 11.52 0 0112 6.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.479 5.92.43.372.823 1.102.823 2.222v3.293c0 .319.218.694.825.576C20.568 22.316 24 17.807 24 12.5 24 5.87 18.627.5 12 .5z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">AI-Powered Security Analysis</div>
+    <h1>Detect Threats in<br><span>Any Message Instantly</span></h1>
+    <p class="hero-sub">Paste emails, SMS, URLs, or messages and get an AI-powered verdict — Safe, Suspicious, or Dangerous — with detailed signal analysis.</p>
+    <div class="hero-btns">
+      <a class="btn btn-primary" href="#scanner">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Try the Scanner
+      </a>
+      <a class="btn btn-outline" href="#how-it-works">
+        Learn How It Works
+      </a>
+      <a class="btn btn-ghost" href="https://github.com" target="_blank">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.31 3.435 9.82 8.205 11.405.6.11.82-.26.82-.577v-2.165c-3.338.726-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.085 1.84 1.237 1.84 1.237 1.07 1.834 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.3-5.467-1.332-5.467-5.93 0-1.31.468-2.38 1.235-3.22-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.3 1.23A11.52 11.52 0 0112 6.803c1.02.005 2.047.138 3.006.404 2.29-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.91 1.235 3.22 0 4.61-2.807 5.625-5.479 5.92.43.372.823 1.102.823 2.222v3.293c0 .319.218.694.825.576C20.568 22.316 24 17.807 24 12.5 24 5.87 18.627.5 12 .5z"/></svg>
+        View Source
+      </a>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num cyan">3</div>
+      <div class="stat-label">Threat Levels</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num violet">4</div>
+      <div class="stat-label">Content Types</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num green">AI</div>
+      <div class="stat-label">Powered Engine</div>
+    </div>
+  </div>
+
+  <!-- SCANNER -->
+  <div class="scanner-card" id="scanner">
+    <div class="scanner-header">
+      <div class="scanner-icon">🔍</div>
+      <div>
+        <div class="scanner-title">Content Analyzer</div>
+        <div class="scanner-desc">Select type, paste content, and click Analyze</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="type-tabs">
+      <button class="tab active" data-type="email" onclick="setType(this,'email')">
+        <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 7 10-7"/></svg>
+        Email
+      </button>
+      <button class="tab" data-type="sms" onclick="setType(this,'sms')">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        SMS
+      </button>
+      <button class="tab" data-type="link" onclick="setType(this,'link')">
+        <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Link / URL
+      </button>
+      <button class="tab" data-type="message" onclick="setType(this,'message')">
+        <svg viewBox="0 0 24 24"><path d="M8 9h8M8 13h6"/><path d="M3 3h18v13H3z"/><path d="m3 16 4 5h10l4-5"/></svg>
+        Message
+      </button>
+    </div>
+
+    <!-- TEXTAREA -->
+    <div class="textarea-wrap">
+      <div class="textarea-inner">
+        <textarea id="inputText" placeholder="Paste your email, SMS, link, or message here…" oninput="updateCount()"></textarea>
+        <div class="textarea-footer">
+          <span class="char-info" id="charCount">0 characters</span>
+          <span class="char-info" id="wordCount">0 words</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAMPLES -->
+    <div class="samples-row">
+      <span class="samples-label">Try sample:</span>
+      <span class="sample-pill" onclick="loadSample('bank')">🏦 Bank alert</span>
+      <span class="sample-pill danger-sample" onclick="loadSample('phishing')">🎣 Phishing email</span>
+      <span class="sample-pill danger-sample" onclick="loadSample('scam')">💬 Prize scam SMS</span>
+      <span class="sample-pill" onclick="loadSample('legit')">✅ Legit newsletter</span>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="action-row">
+      <button class="scan-btn" id="scanBtn" onclick="runScan()" disabled>
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Analyze Content
+      </button>
+      <button class="btn-sm" onclick="clearInput()">
+        <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+        Clear
+      </button>
+      <button class="btn-sm" onclick="copyInput()">
+        <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+      <button class="btn-sm" onclick="shareResult()">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Share
+      </button>
+    </div>
+
+    <!-- RESULT -->
+    <div id="resultWrap"></div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div id="how-it-works">
+    <p class="section-title">How It Works</p>
+    <p class="section-sub">Three simple steps to analyze any content for threats.</p>
+
+    <div class="how-grid">
+      <div class="how-card">
+        <span class="how-num">Step 01</span>
+        <span class="how-icon">📋</span>
+        <div class="how-title">Paste Content</div>
+        <div class="how-desc">Copy any email, SMS, link, or message and paste it into the scanner box above.</div>
+      </div>
+      <div class="how-card">
+        <span class="how-num">Step 02</span>
+        <span class="how-icon">🤖</span>
+        <div class="how-title">AI Analysis</div>
+        <div class="how-desc">Claude AI examines the content for phishing patterns, suspicious links, urgency tactics, and other threat signals.</div>
+      </div>
+      <div class="how-card">
+        <span class="how-num">Step 03</span>
+        <span class="how-icon">📊</span>
+        <div class="how-title">Get Verdict</div>
+        <div class="how-desc">Receive a detailed verdict with confidence score, key signals, and explanation of the reasoning.</div>
+      </div>
+    </div>
+
+    <p class="section-title">Verdict Levels</p>
+    <p class="section-sub">Content is classified into one of three threat levels.</p>
+
+    <div class="verdict-legend">
+      <div class="legend-card safe">
+        <span class="legend-icon">✅</span>
+        <div class="legend-title">Safe</div>
+        <div class="legend-desc">Content appears legitimate with no notable threat signals detected. Proceed normally.</div>
+      </div>
+      <div class="legend-card suspicious">
+        <span class="legend-icon">⚠️</span>
+        <div class="legend-title">Suspicious</div>
+        <div class="legend-desc">Content has some red flags worth caution. Verify the sender and avoid clicking unknown links.</div>
+      </div>
+      <div class="legend-card dangerous">
+        <span class="legend-icon">🚨</span>
+        <div class="legend-title">Dangerous</div>
+        <div class="legend-desc">High-confidence threat detected. Do not click links, share personal info, or respond.</div>
+      </div>
+    </div>
+
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <span>Built by <a href="https://github.com" target="_blank">Asif Sulaiman</a> · ThreatScan AI Portfolio Project</span>
+    <span>Powered by <a href="https://anthropic.com" target="_blank">Anthropic Claude</a></span>
+  </footer>
+
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+const ANTHROPIC_API_KEY = 'YOUR_API_KEY_HERE';
+
+const samples = {
+  bank: `From: security-alerts@bankofamerica-verify.net\nSubject: URGENT: Your account has been compromised!\n\nDear Customer,\n\nWe have detected suspicious activity on your Bank of America account. Your account has been temporarily suspended.\n\nPlease click the link below immediately to verify your identity and restore access:\nhttp://boa-secure-verify.xyz/login\n\nYou must verify within 24 hours or your account will be permanently closed.\n\nBank of America Security Team`,
+  phishing: `From: apple-support@apple-id-verify.com\nSubject: Your Apple ID has been locked\n\nYour Apple ID was used to sign in to iCloud on a new device.\nIf you did not authorize this, your account may be compromised.\n\nVerify your Apple ID immediately:\nhttps://appleid-secure.co/verify-now\n\nFailure to verify within 12 hours will result in permanent account termination.`,
+  scam: `Congratulations! You have been selected as our weekly lucky winner! You've WON a $1000 Walmart Gift Card! To claim your prize click here: bit.ly/claim-prize-walmart-2024 - Offer expires in 2 hours! Reply STOP to unsubscribe.`,
+  legit: `From: newsletter@github.com\nSubject: GitHub Digest: This week in open source\n\nHi there,\n\nHere's your weekly summary of trending repositories and developer news from GitHub.\n\nThis week's highlights:\n- New features in GitHub Actions\n- Trending repositories in Rust and Go\n- Community spotlight: Top contributors\n\nView this email in your browser: https://github.com/newsletter\nUnsubscribe: https://github.com/unsubscribe`
+};
+
+let currentType = 'email';
+let lastResult = null;
+
+function setType(el, type) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  currentType = type;
+  const ph = {
+    email: 'Paste your email here (subject, sender, body)…',
+    sms: 'Paste the SMS text message here…',
+    link: 'Paste the URL or link here…',
+    message: 'Paste the chat message or text here…'
+  };
+  document.getElementById('inputText').placeholder = ph[type];
+}
+
+function updateCount() {
+  const v = document.getElementById('inputText').value;
+  document.getElementById('charCount').textContent = v.length + ' chars';
+  document.getElementById('wordCount').textContent = v.trim() ? v.trim().split(/\s+/).length + ' words' : '0 words';
+  document.getElementById('scanBtn').disabled = v.trim().length < 4;
+}
+
+function clearInput() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('resultWrap').innerHTML = '';
+  updateCount();
+  showToast('✓ Cleared');
+}
+
+function copyInput() {
+  const v = document.getElementById('inputText').value;
+  if (!v) { showToast('Nothing to copy'); return; }
+  navigator.clipboard.writeText(v).then(() => showToast('✓ Copied to clipboard'));
+}
+
+function shareResult() {
+  if (!lastResult) { showToast('Run an analysis first'); return; }
+  const text = `ThreatScan AI Result:\n${lastResult.verdict} (${lastResult.confidence}% confidence)\n\n${lastResult.summary}`;
+  if (navigator.share) {
+    navigator.share({ title: 'ThreatScan AI', text });
+  } else {
+    navigator.clipboard.writeText(text).then(() => showToast('✓ Result copied for sharing'));
+  }
+}
+
+function loadSample(key) {
+  document.getElementById('inputText').value = samples[key];
+  updateCount();
+  showToast('✓ Sample loaded — click Analyze!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function runScan() {
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) return;
+
+  const wrap = document.getElementById('resultWrap');
+  wrap.innerHTML = `<div class="result-wrap"><div class="result-card loading">
+    <div class="verdict-row">
+      <div class="verdict-icon loading" style="animation:spin 1s linear infinite">⚙️</div>
+      <div class="verdict-text">
+        <div class="verdict-label">Analyzing…</div>
+        <div class="verdict-sub">Scanning for threat signals</div>
+      </div>
+      <div class="loader-dots" style="margin-left:auto"><span></span><span></span><span></span></div>
+    </div>
+    <div style="font-size:14px;color:#475569">AI is examining the content for phishing patterns, suspicious links, and social engineering tactics…</div>
+  </div></div>`;
+
+  const systemPrompt = `You are a cybersecurity threat analysis engine. Analyze the user-provided content and classify it strictly.
+
+Respond ONLY with valid JSON, no markdown, no preamble:
+{
+  "verdict": "Safe" | "Suspicious" | "Dangerous",
+  "confidence": integer 0-100,
+  "summary": "One bold sentence verdict summary",
+  "details": "2-3 sentences with specific technical observations",
+  "signals": ["short signal label", "short signal label"],
+  "risk_factors": ["factor if suspicious/dangerous, else empty array"]
+}
+
+signals: 3-5 short labels (3-6 words max) — trust signals for Safe, red flags for Suspicious/Dangerous.
+Be precise and accurate. Do not be paranoid about legitimate content.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: `Type: ${currentType}\n\nContent:\n${text}` }]
+      })
+    });
+
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const raw = data.content.map(b => b.text || '').join('');
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(clean);
+    lastResult = result;
+
+    const vl = result.verdict.toLowerCase();
+    const verdictIcons = { safe: '✅', suspicious: '⚠️', dangerous: '🚨' };
+    const signalIcons = { safe: '✓', suspicious: '⚠', dangerous: '✗' };
+
+    const signalsHtml = (result.signals || []).map(s =>
+      `<span class="signal-pill">${signalIcons[vl] || '·'} ${s}</span>`
+    ).join('');
+
+    wrap.innerHTML = `<div class="result-wrap"><div class="result-card ${vl}">
+      <div class="verdict-row">
+        <div class="verdict-icon">${verdictIcons[vl] || '🔍'}</div>
+        <div class="verdict-text">
+          <div class="verdict-label">${result.verdict}</div>
+          <div class="verdict-sub">Threat analysis complete</div>
+        </div>
+        <div class="confidence-pill">${Math.round(result.confidence)}% confidence</div>
+      </div>
+      <div class="result-summary">${result.summary}</div>
+      <div class="result-details">${result.details}</div>
+      ${signalsHtml ? `<div class="signals">${signalsHtml}</div>` : ''}
+      <div class="result-actions">
+        <button class="res-btn" onclick="clearInput()">
+          <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+          Scan Another
+        </button>
+        <button class="res-btn" onclick="copyResultToClipboard()">
+          <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy Result
+        </button>
+        <button class="res-btn" onclick="shareResult()">
+          <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Share
+        </button>
+      </div>
+    </div></div>`;
+
+  } catch(e) {
+    wrap.innerHTML = `<div class="result-wrap"><div class="result-card suspicious">
+      <div class="verdict-row">
+        <div class="verdict-icon">⚠️</div>
+        <div class="verdict-text">
+          <div class="verdict-label">Analysis Failed</div>
+          <div class="verdict-sub">${e.message || 'Network error'}</div>
+        </div>
+      </div>
+      <div class="result-details">Check your API key in the code (ANTHROPIC_API_KEY variable) and try again.</div>
+      <div class="result-actions">
+        <button class="res-btn" onclick="runScan()">
+          <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+          Retry
+        </button>
+      </div>
+    </div></div>`;
+  }
+}
+
+function copyResultToClipboard() {
+  if (!lastResult) return;
+  const text = `ThreatScan AI — ${lastResult.verdict} (${lastResult.confidence}% confidence)\n\n${lastResult.summary}\n\n${lastResult.details}\n\nSignals: ${(lastResult.signals||[]).join(', ')}`;
+  navigator.clipboard.writeText(text).then(() => showToast('✓ Result copied!'));
+}
+
+const style = document.createElement('style');
+style.textContent = '@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}';
+document.head.appendChild(style);
+</script>
+</body>
+</html>
